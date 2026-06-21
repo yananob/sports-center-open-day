@@ -46,7 +46,7 @@ class FirestoreRepository
             ]);
         }
 
-        $writer->commit();
+        $writer->close();
     }
 
     /**
@@ -84,7 +84,7 @@ class FirestoreRepository
             $writer->set($newDoc, $schedule->toArray());
         }
 
-        $writer->commit();
+        $writer->close();
     }
 
     /**
