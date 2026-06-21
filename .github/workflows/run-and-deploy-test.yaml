@@ -1,18 +1,18 @@
 name: Run test & Deploy Cloud Functions (test)
 
 on:
-  # pull_request:
-  #   branches:
-  #     - test
-  #   types:
-  #     - 'opened'
-  #     - 'synchronize'
-  #     - 'edited'
-  #     - 'reopened'
+  pull_request:
+    branches:
+      - test
+    types:
+      - 'opened'
+      - 'synchronize'
+      - 'edited'
+      - 'reopened'
   workflow_dispatch:
 
 concurrency:
-  group: {{VALUES_FUNCTION_NAME}}-deploy-test
+  group: sports-center-open-day-deploy-test
   cancel-in-progress: true
 
 permissions:
@@ -86,9 +86,9 @@ jobs:
         id: set_name
         run: |
           # if [ -n "${{ github.event.pull_request.number }}" ]; then
-          #   echo "function_name={{VALUES_FUNCTION_NAME}}-test${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          #   echo "function_name=sports-center-open-day-test${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
           # else
-            echo "function_name={{VALUES_FUNCTION_NAME}}-test" >> $GITHUB_OUTPUT
+            echo "function_name=sports-center-open-day-test" >> $GITHUB_OUTPUT
           # fi
 
   deploy:
@@ -101,9 +101,11 @@ jobs:
       wip_provider_name: 'github-provider'
       runtime: php82
       secrets_config: |-
-        {{SECRET_KEYS}}
+        FIREBASE_SERVICE_ACCOUNT
+        LINE_TOKENS_N_TARGETS
+        OPENAI_KEY_SPORTS_CENTER_OPEN_DAY
       # gcs_source_dir: ./public/
-      # gcs_bucket_name: {{VALUES_FUNCTION_NAME}}-static
+      # gcs_bucket_name: sports-center-open-day-static
       # gcs_bucket_path: test
       # disable_gcs_cache: true
       deploy_http_trigger: true
