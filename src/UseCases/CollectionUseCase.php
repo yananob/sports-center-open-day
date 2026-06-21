@@ -30,7 +30,7 @@ class CollectionUseCase
                 $this->logger->info(sprintf("Processing target: %s (%s)", $target->name, $target->url));
 
                 $markdown = $this->crawler->fetchAsMarkdown($target->url);
-                $schedules = $this->aiParser->parseSchedules($target->id, $target->name, $markdown);
+                $schedules = $this->aiParser->parseSchedules($target->id, $target->name, $markdown, $target->url);
                 $this->logger->info(sprintf("Extracted %d schedules for %s.", count($schedules), $target->name));
 
                 $this->repository->saveSchedules($target->id, $schedules);
