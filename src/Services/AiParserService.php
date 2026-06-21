@@ -28,7 +28,7 @@ class AiParserService
     /**
      * @return OpenDaySchedule[]
      */
-    public function parseSchedules(string $centerId, string $centerName, string $markdown): array
+    public function parseSchedules(string $centerId, string $centerName, string $markdown, string $centerUrl): array
     {
         if (empty($this->apiKey)) {
             throw new \Exception("OpenAI API key is not set.");
@@ -45,7 +45,7 @@ class AiParserService
     "schedules": [
         {
             "date": "YYYY-MM-DD",
-            "timeSlot": "時間帯",
+            "timeSlot": "時間帯（例：09:00～13:00、17:30～21:00。時刻は常に2桁・前ゼロ詰めで）",
             "location": "開催場所",
             "activities": "内容（バドミントン、卓球など）"
         }
@@ -98,13 +98,25 @@ EOT;
                 $centerId,
                 $centerName,
                 $item['date'] ?? '',
-                $item['timeSlot'] ?? '',
+                $this->normalizeTimeSlot($item['timeSlot'] ?? ''),
                 $item['location'] ?? '',
                 $item['activities'] ?? '',
-                $now
+                $now,
+                $centerUrl
             );
         }
 
         return $schedules;
+    }
+
+    /**
+     * 時刻の値を時間・分ともに2桁、前ゼロ詰めに正規化します。
+     * 例：9:00～13:00 -> 09:00～13:00
+     */
+    private function normalizeTimeSlot(string $timeSlot): string
+    {
+        return preg_replace_callback('/(\d{1,2}):(\d{2})/', function ($matches) {
+            return sprintf('%02d:%02d', (int)$matches[1], (int)$matches[2]);
+        }, $timeSlot);
     }
 }

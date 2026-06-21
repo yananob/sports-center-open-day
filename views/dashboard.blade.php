@@ -8,13 +8,18 @@
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800">スポーツセンター開放デー一覧</h1>
-            <form action="{{ $basePath }}/update" method="POST">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
-                    情報を更新する
-                </button>
-            </form>
+        <div class="flex justify-between items-end mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">スポーツセンター開放デー一覧</h1>
+            </div>
+            <div class="text-right">
+                <p class="text-gray-500 text-sm mb-2">最終更新: {{ $schedules[0]->updatedAt ?? 'なし' }}</p>
+                <form action="{{ $basePath }}/update" method="POST">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
+                        情報を更新する
+                    </button>
+                </form>
+            </div>
         </div>
 
         @if(empty($schedules))
@@ -26,40 +31,38 @@
                 <table class="min-w-full leading-normal">
                     <thead>
                         <tr>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer" onclick="sortTable(0)">
                                 スポーツセンター
                             </th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                日付
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer" onclick="sortTable(1)">
+                                日付＆時間帯
                             </th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                時間帯
-                            </th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                開催場所
-                            </th>
-                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer" onclick="sortTable(2)">
                                 内容
                             </th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="scheduleTableBody">
                         @foreach($schedules as $s)
-                        <tr>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                <p class="text-gray-900 whitespace-no-wrap">{{ $s->centerName }}</p>
+                        @php
+                            $dateObj = \Carbon\Carbon::parse($s->date);
+                            $isPast = $dateObj->isPast() && !$dateObj->isToday();
+                            $hasTableTennis = mb_strpos($s->activities, '卓球') !== false;
+                            $rowClass = ($isPast || !$hasTableTennis) ? 'bg-gray-200 text-gray-500' : 'bg-white text-gray-900';
+                            $days = ['日', '月', '火', '水', '木', '金', '土'];
+                            $dayOfWeek = $days[$dateObj->dayOfWeek];
+                        @endphp
+                        <tr class="{{ $rowClass }}">
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                <a href="{{ $s->centerUrl }}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">
+                                    {{ $s->centerName }}
+                                </a>
                             </td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                <p class="text-gray-900 whitespace-no-wrap">{{ $s->date }}</p>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm" data-order="{{ $s->date }} {{ $s->timeSlot }}">
+                                {{ $s->date }} ({{ $dayOfWeek }}) {{ $s->timeSlot }}
                             </td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                <p class="text-gray-900 whitespace-no-wrap">{{ $s->timeSlot }}</p>
-                            </td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                <p class="text-gray-900 whitespace-no-wrap">{{ $s->location }}</p>
-                            </td>
-                            <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                                <p class="text-gray-900 whitespace-no-wrap">{{ $s->activities }}</p>
+                            <td class="px-5 py-5 border-b border-gray-200 text-sm">
+                                {{ $s->activities }}
                             </td>
                         </tr>
                         @endforeach
@@ -68,9 +71,51 @@
             </div>
         @endif
 
-        <footer class="mt-8 text-center text-gray-500 text-sm">
-            <p>最終更新: {{ $schedules[0]->updatedAt ?? 'なし' }}</p>
-        </footer>
     </div>
+
+    <script>
+        function sortTable(n) {
+            const table = document.getElementById("scheduleTableBody");
+            let rows = Array.from(table.rows);
+            let switching = true;
+            let dir = "asc";
+            let switchcount = 0;
+
+            while (switching) {
+                switching = false;
+                for (var i = 0; i < (rows.length - 1); i++) {
+                    let shouldSwitch = false;
+                    let x = rows[i].getElementsByTagName("TD")[n];
+                    let y = rows[i + 1].getElementsByTagName("TD")[n];
+
+                    let xValue = x.getAttribute("data-order") || x.innerText.toLowerCase();
+                    let yValue = y.getAttribute("data-order") || y.innerText.toLowerCase();
+
+                    if (dir == "asc") {
+                        if (xValue > yValue) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    } else if (dir == "desc") {
+                        if (xValue < yValue) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    }
+                }
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                    switchcount++;
+                    rows = Array.from(table.rows);
+                } else {
+                    if (switchcount == 0 && dir == "asc") {
+                        dir = "desc";
+                        switching = true;
+                    }
+                }
+            }
+        }
+    </script>
 </body>
 </html>

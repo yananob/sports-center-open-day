@@ -29,6 +29,7 @@ class OpenDayScheduleTest extends TestCase
             'location' => 'Gym',
             'activities' => 'Badminton',
             'updatedAt' => '2023-06-01 10:00:00',
+            'centerUrl' => '',
         ];
 
         $this->assertEquals($expected, $schedule->toArray());
