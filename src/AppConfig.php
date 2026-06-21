@@ -31,13 +31,12 @@ class AppConfig
     public static function getFirestoreRootCollection(): string
     {
         return match (self::getEnvironment()) {
-            'production' => '{APP-NAME}',
-            'test' => '{APP-NAME}-test',
-            default => '{APP-NAME}-test',
+            'production' => 'sports-center-open-day',
+            'test' => 'sports-center-open-day-test',
+            default => 'sports-center-open-day-test',
         };
     }
 
-    
     /**
      * アプリケーションのベースパスを取得します。
      *
@@ -46,9 +45,19 @@ class AppConfig
     public static function getBasePath(): string
     {
         return match (self::getEnvironment()) {
-            'production' => '/{APP-NAME}',
-            'test' => '/{APP-NAME}-test',
+            'production' => '/sports-center-open-day',
+            'test' => '/sports-center-open-day-test',
             default => '',
         };
+    }
+
+    /**
+     * OpenAIのAPIキーを取得します。
+     *
+     * @return string APIキー。
+     */
+    public static function getOpenAiApiKey(): string
+    {
+        return getenv('OPENAI_KEY_SPORTS_CENTER');
     }
 }

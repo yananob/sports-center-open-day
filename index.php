@@ -7,9 +7,29 @@ use Psr\Http\Message\ServerRequestInterface;
 use CloudEvents\V1\CloudEventInterface;
 
 FunctionsFramework::http('main_http', 'main_http');
-function main_http(ServerRequestInterface $request): string
+function main_http(ServerRequestInterface $request): \Psr\Http\Message\ResponseInterface
 {
-    return "Hello, World!";
+    $path = $request->getUri()->getPath();
+    $basePath = \App\AppConfig::getBasePath();
+
+    // プレフィックスを除去してルーティング
+    $route = str_replace($basePath, '', $path);
+    $route = rtrim($route, '/');
+    if ($route === '') {
+        $route = '/';
+    }
+
+    $controller = new \App\Controllers\DashboardController();
+
+    if ($route === '/' && $request->getMethod() === 'GET') {
+        return $controller->index($request);
+    }
+
+    if ($route === '/update' && $request->getMethod() === 'POST') {
+        return $controller->update($request);
+    }
+
+    return new \GuzzleHttp\Psr7\Response(404, [], "Not Found");
 }
 
 FunctionsFramework::cloudEvent('main_event', 'main_event');
