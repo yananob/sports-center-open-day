@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スポーツセンター開放デー一覧</title>
+    <title>開放デー一覧</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
@@ -14,11 +14,16 @@
             </div>
             <div class="text-right">
                 <p class="text-gray-500 text-sm mb-2">最終更新: {{ $schedules[0]->updatedAt ?? 'なし' }}</p>
-                <form action="{{ $basePath }}/update" method="POST">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
-                        情報を更新する
-                    </button>
-                </form>
+                <div class="flex space-x-2 justify-end">
+                    <a href="{{ $basePath }}/targets" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded shadow">
+                        管理
+                    </a>
+                    <form action="{{ $basePath }}/update" method="POST">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
+                            情報を更新
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -74,47 +79,33 @@
     </div>
 
     <script>
+        let currentSortColumn = -1;
+        let currentSortDir = 'asc';
+
         function sortTable(n) {
-            const table = document.getElementById("scheduleTableBody");
-            let rows = Array.from(table.rows);
-            let switching = true;
-            let dir = "asc";
-            let switchcount = 0;
+            const tableBody = document.getElementById("scheduleTableBody");
+            const rows = Array.from(tableBody.rows);
 
-            while (switching) {
-                switching = false;
-                for (var i = 0; i < (rows.length - 1); i++) {
-                    let shouldSwitch = false;
-                    let x = rows[i].getElementsByTagName("TD")[n];
-                    let y = rows[i + 1].getElementsByTagName("TD")[n];
-
-                    let xValue = x.getAttribute("data-order") || x.innerText.toLowerCase();
-                    let yValue = y.getAttribute("data-order") || y.innerText.toLowerCase();
-
-                    if (dir == "asc") {
-                        if (xValue > yValue) {
-                            shouldSwitch = true;
-                            break;
-                        }
-                    } else if (dir == "desc") {
-                        if (xValue < yValue) {
-                            shouldSwitch = true;
-                            break;
-                        }
-                    }
-                }
-                if (shouldSwitch) {
-                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                    switching = true;
-                    switchcount++;
-                    rows = Array.from(table.rows);
-                } else {
-                    if (switchcount == 0 && dir == "asc") {
-                        dir = "desc";
-                        switching = true;
-                    }
-                }
+            if (currentSortColumn === n) {
+                currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortDir = 'asc';
+                currentSortColumn = n;
             }
+
+            rows.sort((a, b) => {
+                const x = a.getElementsByTagName("TD")[n];
+                const y = b.getElementsByTagName("TD")[n];
+
+                const xValue = (x.getAttribute("data-order") || x.innerText.trim()).toLowerCase();
+                const yValue = (y.getAttribute("data-order") || y.innerText.trim()).toLowerCase();
+
+                if (xValue < yValue) return currentSortDir === 'asc' ? -1 : 1;
+                if (xValue > yValue) return currentSortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            tableBody.append(...rows);
         }
     </script>
 </body>
