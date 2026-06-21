@@ -13,7 +13,8 @@ class OpenDaySchedule
         public readonly string $timeSlot,
         public readonly string $location,
         public readonly string $activities,
-        public readonly string $updatedAt
+        public readonly string $updatedAt,
+        public readonly string $centerUrl = ''
     ) {}
 
     public function toArray(): array
@@ -26,6 +27,7 @@ class OpenDaySchedule
             'location' => $this->location,
             'activities' => $this->activities,
             'updatedAt' => $this->updatedAt,
+            'centerUrl' => $this->centerUrl,
         ];
     }
 
@@ -38,7 +40,8 @@ class OpenDaySchedule
             $data['timeSlot'] ?? '',
             $data['location'] ?? '',
             $data['activities'] ?? '',
-            $data['updatedAt'] ?? ''
+            $data['updatedAt'] ?? '',
+            $data['centerUrl'] ?? ''
         );
     }
 }
