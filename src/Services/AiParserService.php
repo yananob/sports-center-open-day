@@ -8,6 +8,7 @@ use App\AppConfig;
 use App\Models\OpenDaySchedule;
 use GuzzleHttp\Client;
 use Carbon\Carbon;
+use Psr\Log\LoggerInterface;
 
 class AiParserService
 {
@@ -15,6 +16,7 @@ class AiParserService
     private string $apiKey;
 
     public function __construct(
+        private LoggerInterface $logger
     )
     {
         $this->client = new Client([
@@ -35,18 +37,20 @@ class AiParserService
         $year = Carbon::now()->year;
         $prompt = <<<EOT
 あなたはスポーツセンターの開放デー情報を抽出するアシスタントです。
-提供されたMarkdown形式のテキストから、開放デーのスケジュール情報を抽出してください。
-表形式の部分だけでなく、備考欄や注釈など、テキスト全体をくまなく解析して、開催予定を漏れなく抽出してください。
+提供されたMarkdown形式のテキストから、開放デーのスケジュール情報を全て抽出してください。
+表形式の部分だけでなく、テキスト全体をくまなく解析して、開催予定を漏れなく抽出してください。
 
 出力は以下のJSON形式の配列にしてください。
-[
-  {
-    "date": "YYYY-MM-DD",
-    "timeSlot": "時間帯",
-    "location": "開催場所",
-    "activities": "内容（バドミントン、卓球など）"
-  }
-]
+{
+    "schedules": [
+        {
+            "date": "YYYY-MM-DD",
+            "timeSlot": "時間帯",
+            "location": "開催場所",
+            "activities": "内容（バドミントン、卓球など）"
+        }
+    ]
+}
 
 ※日付は現在の年を想定してください。現在は {$year} 年です。
 ※Markdown内の情報が「6月13日(土)」のような形式の場合、適切な日付（YYYY-MM-DD）に変換してください。
@@ -65,6 +69,7 @@ EOT;
             ],
             'json' => [
                 'model' => 'gpt-5.4-mini', // ユーザー指定のモデル名
+                // 'model' => 'gpt-5.1', // ユーザー指定のモデル名
                 'messages' => [
                     ['role' => 'system', 'content' => 'You are a helpful assistant.'],
                     ['role' => 'user', 'content' => $prompt],
@@ -75,6 +80,7 @@ EOT;
 
         $body = json_decode((string)$response->getBody(), true);
         $content = $body['choices'][0]['message']['content'] ?? '[]';
+        // $this->logger->info("AI Parser Response: " . $content);
         $data = json_decode($content, true);
 
         // キーが入れ子になっている可能性を考慮（json_object指定時）

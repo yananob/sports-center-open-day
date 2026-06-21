@@ -53,7 +53,7 @@ class DashboardController
         $useCase = new CollectionUseCase(
             $this->repository,
             new CrawlerService(),
-            new AiParserService(),
+            new AiParserService($this->logger),
             $this->logger
         );
 
