@@ -31,14 +31,23 @@ class FirestoreRepository
         $writer = $this->db->bulkWriter();
         $collection = $this->db->collection($this->rootCollection)->document('data')->collection('targets');
 
-        // Clear existing targets
-        $existing = $collection->documents();
-        foreach ($existing as $doc) {
-            $writer->delete($doc->reference());
+        // IDでユニーク化
+        $newTargets = [];
+        foreach ($targets as $target) {
+            $newTargets[$target->id] = $target;
         }
 
-        // Add new targets
-        foreach ($targets as $target) {
+        // 既存のターゲットを取得
+        $existing = $collection->documents();
+        foreach ($existing as $doc) {
+            // 新しいリストに含まれない場合のみ削除
+            if (!isset($newTargets[$doc->id()])) {
+                $writer->delete($doc->reference());
+            }
+        }
+
+        // 新しいターゲットを保存（上書き）
+        foreach ($newTargets as $target) {
             $docRef = $collection->document($target->id);
             $writer->set($docRef, [
                 'name' => $target->name,
