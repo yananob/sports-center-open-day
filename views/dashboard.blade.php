@@ -16,7 +16,7 @@
                 <p class="text-gray-500 text-sm mb-2">最終更新: {{ $schedules[0]->updatedAt ?? 'なし' }}</p>
                 <form action="{{ $basePath }}/update" method="POST">
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
-                        情報を更新する
+                        情報を更新
                     </button>
                 </form>
             </div>
