@@ -1,0 +1,101 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\AppConfig;
+use App\Models\OpenDaySchedule;
+use GuzzleHttp\Client;
+use Carbon\Carbon;
+
+class AiParserService
+{
+    private Client $client;
+    private string $apiKey;
+
+    public function __construct()
+    {
+        $this->client = new Client([
+            'timeout' => 60.0,
+        ]);
+        $this->apiKey = AppConfig::getOpenAiApiKey();
+    }
+
+    /**
+     * @return OpenDaySchedule[]
+     */
+    public function parseSchedules(string $centerId, string $centerName, string $markdown): array
+    {
+        if (empty($this->apiKey)) {
+            throw new \Exception("OpenAI API key is not set.");
+        }
+
+        $prompt = <<<EOT
+あなたはスポーツセンターの開放デー情報を抽出するアシスタントです。
+提供されたMarkdown形式のテキストから、開放デーのスケジュール情報を抽出してください。
+
+出力は以下のJSON形式の配列にしてください。
+[
+  {
+    "date": "YYYY-MM-DD",
+    "timeSlot": "時間帯",
+    "location": "開催場所",
+    "activities": "内容（バドミントン、卓球など）"
+  }
+]
+
+※日付は現在の年を想定してください。現在は Carbon::now()->year 年です。
+※Markdown内の情報が「6月13日(土)」のような形式の場合、適切な日付（YYYY-MM-DD）に変換してください。
+※情報が見つからない場合は空の配列を返してください。
+※JSON以外のテキストは出力しないでください。
+
+Markdownテキスト:
+$markdown
+EOT;
+
+        $response = $this->client->post('https://api.openai.com/v1/chat/completions', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type'  => 'application/json',
+            ],
+            'json' => [
+                'model' => 'gpt-5.4-mini', // ユーザー指定のモデル名
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are a helpful assistant.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                'response_format' => ['type' => 'json_object'],
+            ],
+        ]);
+
+        $body = json_decode((string)$response->getBody(), true);
+        $content = $body['choices'][0]['message']['content'] ?? '[]';
+        $data = json_decode($content, true);
+
+        // キーが入れ子になっている可能性を考慮（json_object指定時）
+        if (isset($data['schedules'])) {
+            $data = $data['schedules'];
+        } elseif (!isset($data[0]) && count($data) > 0) {
+            // 単一のオブジェクトとして返ってきた場合など
+            $data = array_values($data)[0];
+            if (!is_array($data)) $data = [];
+        }
+
+        $schedules = [];
+        $now = Carbon::now()->toDateTimeString();
+        foreach ($data as $item) {
+            $schedules[] = new OpenDaySchedule(
+                $centerId,
+                $centerName,
+                $item['date'] ?? '',
+                $item['timeSlot'] ?? '',
+                $item['location'] ?? '',
+                $item['activities'] ?? '',
+                $now
+            );
+        }
+
+        return $schedules;
+    }
+}
