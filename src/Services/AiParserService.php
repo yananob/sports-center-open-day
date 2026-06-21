@@ -80,7 +80,7 @@ EOT;
 
         $body = json_decode((string)$response->getBody(), true);
         $content = $body['choices'][0]['message']['content'] ?? '[]';
-        // $this->logger->info("AI Parser Response: " . $content);
+        $this->logger->info("AI Parser Response: " . $content);
         $data = json_decode($content, true);
 
         // キーが入れ子になっている可能性を考慮（json_object指定時）
