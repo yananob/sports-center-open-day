@@ -10,7 +10,7 @@
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-end mb-6">
             <div>
-                <h1 class="text-3xl font-bold text-gray-800">スポーツセンター開放デー一覧</h1>
+                <h1 class="text-3xl font-bold text-gray-800">開放デー一覧</h1>
             </div>
             <div class="text-right">
                 <p class="text-gray-500 text-sm mb-2">最終更新: {{ $schedules[0]->updatedAt ?? 'なし' }}</p>
