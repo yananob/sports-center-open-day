@@ -1,4 +1,4 @@
-# {{VALUES_FUNCTION_NAME}}
+# sports-center-open-day
 
 
 # 開発方針
