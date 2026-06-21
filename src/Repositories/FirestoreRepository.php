@@ -24,6 +24,32 @@ class FirestoreRepository
     }
 
     /**
+     * @param TargetCenter[] $targets
+     */
+    public function saveTargets(array $targets): void
+    {
+        $writer = $this->db->bulkWriter();
+        $collection = $this->db->collection($this->rootCollection)->document('data')->collection('targets');
+
+        // Clear existing targets
+        $existing = $collection->documents();
+        foreach ($existing as $doc) {
+            $writer->delete($doc->reference());
+        }
+
+        // Add new targets
+        foreach ($targets as $target) {
+            $docRef = $collection->document($target->id);
+            $writer->set($docRef, [
+                'name' => $target->name,
+                'url' => $target->url,
+            ]);
+        }
+
+        $writer->commit();
+    }
+
+    /**
      * @return TargetCenter[]
      */
     public function getTargets(): array

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: {{VALUES_FUNCTION_NAME}}-deploy-production
+  group: sports-center-open-day-deploy-production
   cancel-in-progress: true
 
 permissions:
@@ -24,9 +24,9 @@ jobs:
         id: set_name
         run: |
           # if [ -n "${{ github.event.pull_request.number }}" ]; then
-          #   echo "function_name={{VALUES_FUNCTION_NAME}}${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          #   echo "function_name=sports-center-open-day${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
           # else
-            echo "function_name={{VALUES_FUNCTION_NAME}}" >> $GITHUB_OUTPUT
+            echo "function_name=sports-center-open-day" >> $GITHUB_OUTPUT
           # fi
 
   deploy:
@@ -41,7 +41,7 @@ jobs:
       secrets_config: |-
         SECRET_KEYS
       # gcs_source_dir: ./public/
-      # gcs_bucket_name: {{VALUES_FUNCTION_NAME}}-static
+      # gcs_bucket_name: sports-center-open-day-static
       # gcs_bucket_path: test
       # disable_gcs_cache: true
       deploy_http_trigger: true
