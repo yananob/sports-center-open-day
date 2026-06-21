@@ -29,6 +29,14 @@ function main_http(ServerRequestInterface $request): \Psr\Http\Message\ResponseI
         return $controller->update($request);
     }
 
+    if ($route === '/targets' && $request->getMethod() === 'GET') {
+        return $controller->targets($request);
+    }
+
+    if ($route === '/targets' && $request->getMethod() === 'POST') {
+        return $controller->saveTargets($request);
+    }
+
     return new \GuzzleHttp\Psr7\Response(404, [], "Not Found");
 }
 

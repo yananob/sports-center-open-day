@@ -66,4 +66,40 @@ class DashboardController
             return new Response(500, [], "Internal Server Error: " . $e->getMessage());
         }
     }
+
+    public function targets(ServerRequestInterface $request): ResponseInterface
+    {
+        $targets = $this->repository->getTargets();
+        $basePath = AppConfig::getBasePath();
+
+        $html = $this->blade->run("targets", [
+            'targets' => $targets,
+            'basePath' => $basePath
+        ]);
+
+        return new Response(200, ['Content-Type' => 'text/html'], $html);
+    }
+
+    public function saveTargets(ServerRequestInterface $request): ResponseInterface
+    {
+        $body = $request->getParsedBody();
+        $targetData = $body['targets'] ?? [];
+
+        $targets = [];
+        foreach ($targetData as $data) {
+            if (empty($data['id']) || empty($data['name']) || empty($data['url'])) {
+                continue;
+            }
+            $targets[] = \App\Models\TargetCenter::fromArray($data['id'], $data);
+        }
+
+        try {
+            $this->repository->saveTargets($targets);
+            $basePath = AppConfig::getBasePath();
+            return new Response(302, ['Location' => $basePath . '/targets']);
+        } catch (\Exception $e) {
+            $this->logger->error($e->getMessage());
+            return new Response(500, [], "Internal Server Error: " . $e->getMessage());
+        }
+    }
 }
