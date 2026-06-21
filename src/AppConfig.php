@@ -58,6 +58,6 @@ class AppConfig
      */
     public static function getOpenAiApiKey(): string
     {
-        return getenv('OPENAI_KEY_SPORTS_CENTER');
+        return getenv('OPENAI_KEY_SPORTS_CENTER_OPEN_DAY');
     }
 }
