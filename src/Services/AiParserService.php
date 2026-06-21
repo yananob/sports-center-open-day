@@ -14,7 +14,8 @@ class AiParserService
     private Client $client;
     private string $apiKey;
 
-    public function __construct()
+    public function __construct(
+    )
     {
         $this->client = new Client([
             'timeout' => 60.0,
@@ -74,16 +75,20 @@ EOT;
 
         $body = json_decode((string)$response->getBody(), true);
         $content = $body['choices'][0]['message']['content'] ?? '[]';
+        $this->logger->info("Content: " . $content);
         $data = json_decode($content, true);
+        $this->logger->info("Parsed Data1: " . json_encode($data));
 
         // キーが入れ子になっている可能性を考慮（json_object指定時）
         if (isset($data['schedules'])) {
             $data = $data['schedules'];
         } elseif (!isset($data[0]) && count($data) > 0) {
-            // 単一のオブジェクトとして返ってきた場合など
-            $data = array_values($data)[0];
-            if (!is_array($data)) $data = [];
+            // // 単一のオブジェクトとして返ってきた場合など
+            // $data = array_values($data)[0];
+            // if (!is_array($data)) $data = [];
+            $data = [$data];
         }
+        $this->logger->info("Parsed Data2: " . json_encode($data));
 
         $schedules = [];
         $now = Carbon::now()->toDateTimeString();

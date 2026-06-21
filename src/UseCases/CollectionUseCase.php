@@ -31,6 +31,7 @@ class CollectionUseCase
 
                 $markdown = $this->crawler->fetchAsMarkdown($target->url);
                 $schedules = $this->aiParser->parseSchedules($target->id, $target->name, $markdown);
+                $this->logger->info(sprintf("Extracted %d schedules for %s.", count($schedules), $target->name));
 
                 $this->repository->saveSchedules($target->id, $schedules);
 

@@ -10,17 +10,21 @@ class CrawlerService
 {
     private Client $client;
 
+    const BASE_URL = 'https://r.jina.ai/';
+
     public function __construct()
     {
         $this->client = new Client([
-            'base_uri' => 'https://r.jina.ai/',
             'timeout'  => 30.0,
+            'headers'  => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36',
+            ],
         ]);
     }
 
     public function fetchAsMarkdown(string $url): string
     {
-        $response = $this->client->get($url);
+        $response = $this->client->get(self::BASE_URL . $url);
         return (string) $response->getBody();
     }
 }
