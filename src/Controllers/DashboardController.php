@@ -38,6 +38,15 @@ class DashboardController
     public function index(ServerRequestInterface $request): ResponseInterface
     {
         $schedules = $this->repository->getAllSchedules();
+
+        // 日付と時間帯でソート
+        usort($schedules, function ($a, $b) {
+            if ($a->date !== $b->date) {
+                return strcmp($a->date, $b->date);
+            }
+            return strcmp($a->timeSlot, $b->timeSlot);
+        });
+
         $basePath = AppConfig::getBasePath();
 
         $html = $this->blade->run("dashboard", [
