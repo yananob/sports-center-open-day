@@ -43,7 +43,22 @@ function main_http(ServerRequestInterface $request): \Psr\Http\Message\ResponseI
 FunctionsFramework::cloudEvent('main_event', 'main_event');
 function main_event(CloudEventInterface $event): void
 {
-    $logger = new \Monolog\Logger('cloud_event_logger');
+    $logger = new \Monolog\Logger('batch');
     $logger->pushHandler(new \Monolog\Handler\StreamHandler('php://stdout', \Monolog\Level::Info));
-    $logger->info("Hello, World!");
+    $logger->info("Starting batch collection process from Cloud Event.");
+
+    $repository = new \App\Repositories\FirestoreRepository();
+    $useCase = new \App\UseCases\CollectionUseCase(
+        $repository,
+        new \App\Services\CrawlerService(),
+        new \App\Services\AiParserService($logger),
+        $logger
+    );
+
+    try {
+        $useCase->execute();
+        $logger->info("Batch collection process completed successfully.");
+    } catch (\Exception $e) {
+        $logger->error("Batch collection process failed: " . $e->getMessage());
+    }
 }
