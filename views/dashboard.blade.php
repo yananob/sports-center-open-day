@@ -77,7 +77,7 @@
                                 . "&text=" . urlencode("【開放デー】" . $s->centerName)
                                 . "&dates=" . $startTime . "/" . $endTime
                                 . "&details=" . urlencode("内容: " . $s->activities . "\nURL: " . $s->centerUrl)
-                                . "&location=" . urlencode($s->location ?: $s->centerName);
+                                . "&location=" . urlencode($s->centerName . " " . $s->location);
                         @endphp
                         <tr class="{{ $rowClass }}">
                             <td class="px-5 py-5 border-b border-gray-200 text-sm">
@@ -93,8 +93,8 @@
                             </td>
                             <td class="px-5 py-5 border-b border-gray-200 text-sm">
                                 @if($startTime && $endTime)
-                                <a href="{{ $calendarUrl }}" target="_blank" class="text-xs bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded shadow inline-block">
-                                    カレンダー登録
+                                <a href="{{ $calendarUrl }}" target="_blank" class="text-xs bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded shadow inline-block whitespace-nowrap">
+                                    📅登録
                                 </a>
                                 @endif
                             </td>
