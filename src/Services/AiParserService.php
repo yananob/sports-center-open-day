@@ -69,7 +69,7 @@ EOT;
                 'Content-Type'  => 'application/json',
             ],
             'json' => [
-                'model' => 'gpt-5.4-mini', // ユーザー指定のモデル名
+                'model' => 'gpt-5.6-luna', // ユーザー指定のモデル名
                 // 'model' => 'gpt-5.1', // ユーザー指定のモデル名
                 'messages' => [
                     ['role' => 'system', 'content' => 'You are a helpful assistant.'],
