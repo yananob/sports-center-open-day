@@ -36,6 +36,13 @@
                 スケジュール情報がありません。
             </div>
         @else
+            <div class="mb-4 flex justify-between items-center bg-white p-4 rounded-lg shadow">
+                <label class="inline-flex items-center cursor-pointer text-sm text-gray-700 font-medium">
+                    <input type="checkbox" id="toggleGrayRows" class="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-2" onchange="toggleGrayRows()">
+                    <span>過去分・他スポーツを表示する</span>
+                </label>
+            </div>
+
             <div class="overflow-x-auto bg-white rounded-lg shadow">
                 <table class="min-w-full leading-normal">
                     <thead>
@@ -60,7 +67,8 @@
                             $dateObj = \Carbon\Carbon::parse($s->date);
                             $isPast = $dateObj->isPast() && !$dateObj->isToday();
                             $hasTableTennis = mb_strpos($s->activities, '卓球') !== false;
-                            $rowClass = ($isPast || !$hasTableTennis) ? 'bg-gray-200 text-gray-500' : 'bg-white text-gray-900';
+                            $isGray = $isPast || !$hasTableTennis;
+                            $rowClass = $isGray ? 'bg-gray-200 text-gray-500 gray-row hidden' : 'bg-white text-gray-900';
                             $days = ['日', '月', '火', '水', '木', '金', '土'];
                             $dayOfWeek = $days[$dateObj->dayOfWeek];
 
@@ -108,6 +116,24 @@
     </div>
 
     <script>
+        function toggleGrayRows() {
+            const checkbox = document.getElementById('toggleGrayRows');
+            if (!checkbox) return;
+            const show = checkbox.checked;
+            const grayRows = document.querySelectorAll('.gray-row');
+            grayRows.forEach(row => {
+                if (show) {
+                    row.classList.remove('hidden');
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            toggleGrayRows();
+        });
+
         function showLoading(form) {
             const btn = document.getElementById('updateButton');
             const text = document.getElementById('buttonText');
