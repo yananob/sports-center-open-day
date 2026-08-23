@@ -63,7 +63,7 @@ jobs:
 
     - name: Install dependencies (Composer)
       run: composer install --prefer-dist --no-progress
-    
+
     # - name: Install dependencies (NPM)
     #   run: npm install --prefer-offline --no-audit --progress=false
 
@@ -93,7 +93,7 @@ jobs:
 
   deploy:
     needs: [prepare-deploy, test]
-    uses: yananob/cloud-functions-common/.github/workflows/deploy-cloud-functions.yaml@main
+    uses: yananob/myapps-common/.github/workflows/deploy-cloud-functions.yaml@main
     with:
       function_name: ${{ needs.prepare-deploy.outputs.function_name }}
       service_account_name: 'cloud-run-functions-deployer'
@@ -104,6 +104,7 @@ jobs:
         FIREBASE_SERVICE_ACCOUNT
         LINE_TOKENS_N_TARGETS
         OPENAI_KEY_SPORTS_CENTER_OPEN_DAY
+        JINA_API_KEY
       # gcs_source_dir: ./public/
       # gcs_bucket_name: sports-center-open-day-static
       # gcs_bucket_path: test
