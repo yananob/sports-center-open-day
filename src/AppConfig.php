@@ -60,4 +60,14 @@ class AppConfig
     {
         return getenv('OPENAI_KEY_SPORTS_CENTER_OPEN_DAY');
     }
+
+    /**
+     * JinaのAPIキーを取得します。
+     *
+     * @return string APIキー。
+     */
+    public static function getJinaApiKey(): string
+    {
+        return (string) (getenv('JINA_API_KEY') ?: '');
+    }
 }

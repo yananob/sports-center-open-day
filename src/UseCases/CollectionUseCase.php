@@ -26,19 +26,15 @@ class CollectionUseCase
         $this->logger->info(sprintf("Found %d targets.", count($targets)));
 
         foreach ($targets as $target) {
-            try {
-                $this->logger->info(sprintf("Processing target: %s (%s)", $target->name, $target->url));
+            $this->logger->info(sprintf("Processing target: %s (%s)", $target->name, $target->url));
 
-                $markdown = $this->crawler->fetchAsMarkdown($target->url);
-                $schedules = $this->aiParser->parseSchedules($target->id, $target->name, $markdown, $target->url);
-                $this->logger->info(sprintf("Extracted %d schedules for %s.", count($schedules), $target->name));
+            $markdown = $this->crawler->fetchAsMarkdown($target->url);
+            $schedules = $this->aiParser->parseSchedules($target->id, $target->name, $markdown, $target->url);
+            $this->logger->info(sprintf("Extracted %d schedules for %s.", count($schedules), $target->name));
 
-                $this->repository->saveSchedules($target->id, $schedules);
+            $this->repository->saveSchedules($target->id, $schedules);
 
-                $this->logger->info(sprintf("Successfully saved %d schedules for %s.", count($schedules), $target->name));
-            } catch (\Exception $e) {
-                $this->logger->error(sprintf("Error processing target %s: %s", $target->name, $e->getMessage()));
-            }
+            $this->logger->info(sprintf("Successfully saved %d schedules for %s.", count($schedules), $target->name));
         }
 
         $this->logger->info("Schedule collection process completed.");
