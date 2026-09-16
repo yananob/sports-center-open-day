@@ -16,10 +16,7 @@ class FirestoreRepository
 
     public function __construct()
     {
-        $config = json_decode(getenv("FIREBASE_SERVICE_ACCOUNT") ?: '{}', true);
-        $this->db = new FirestoreClient([
-            "keyFile" => $config
-        ]);
+        $this->db = new FirestoreClient();
         $this->rootCollection = AppConfig::getFirestoreRootCollection();
     }
 

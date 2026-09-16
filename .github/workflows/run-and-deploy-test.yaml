@@ -101,7 +101,6 @@ jobs:
       wip_provider_name: 'github-provider'
       runtime: php82
       secrets_config: |-
-        FIREBASE_SERVICE_ACCOUNT
         LINE_TOKENS_N_TARGETS
         OPENAI_KEY_SPORTS_CENTER_OPEN_DAY
         JINA_API_KEY
