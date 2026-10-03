@@ -5,28 +5,26 @@ declare(strict_types=1);
 namespace App;
 
 /**
- * アプリケーション環境に基づいて設定値を提供します。
- * 環境は`APP_ENV`環境変数によって決定されます。
- *
+ * アプリケーション環境に基づいて設定値を提供するクラス。
+ * 環境は `APP_ENV` 環境変数によって決定されます。
  * サポートされる環境: 'production', 'test', 'local'。
- * `APP_ENV`は必須です。
  */
 class AppConfig
 {
     /**
      * 現在のアプリケーション環境を取得します。
      *
-     * @return string 現在の環境 ('production', 'test', または 'local')。
+     * @return string 現在の環境 ('production', 'test', 'local' など)。設定されていない場合は空文字列。
      */
     public static function getEnvironment(): string
     {
-        return getenv('APP_ENV');
+        return (string) (getenv('APP_ENV') ?: '');
     }
 
     /**
      * Firestoreのルートコレクション名を取得します。
      *
-     * @return string Firestoreコレクションの名前。
+     * @return string Firestoreコレクション名。
      */
     public static function getFirestoreRootCollection(): string
     {
@@ -54,17 +52,17 @@ class AppConfig
     /**
      * OpenAIのAPIキーを取得します。
      *
-     * @return string APIキー。
+     * @return string APIキー。設定されていない場合は空文字列。
      */
     public static function getOpenAiApiKey(): string
     {
-        return getenv('OPENAI_KEY_SPORTS_CENTER_OPEN_DAY');
+        return (string) (getenv('OPENAI_KEY_SPORTS_CENTER_OPEN_DAY') ?: '');
     }
 
     /**
      * JinaのAPIキーを取得します。
      *
-     * @return string APIキー。
+     * @return string APIキー。設定されていない場合は空文字列。
      */
     public static function getJinaApiKey(): string
     {

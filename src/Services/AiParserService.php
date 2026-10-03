@@ -10,23 +10,33 @@ use GuzzleHttp\Client;
 use Carbon\Carbon;
 use Psr\Log\LoggerInterface;
 
+/**
+ * MarkdownテキストからAI (OpenAI API) を使用して開放デーのスケジュール情報を解析・抽出するサービス。
+ */
 class AiParserService
 {
     private Client $client;
     private string $apiKey;
 
     public function __construct(
-        private LoggerInterface $logger
-    )
-    {
-        $this->client = new Client([
+        private LoggerInterface $logger,
+        ?Client $client = null
+    ) {
+        $this->client = $client ?? new Client([
             'timeout' => 60.0,
         ]);
         $this->apiKey = AppConfig::getOpenAiApiKey();
     }
 
     /**
-     * @return OpenDaySchedule[]
+     * Markdownテキストからスケジュールを抽出します。
+     *
+     * @param string $centerId スポーツセンターID
+     * @param string $centerName スポーツセンター名称
+     * @param string $markdown Markdownテキスト
+     * @param string $centerUrl スポーツセンターURL
+     * @return OpenDaySchedule[] 抽出されたスケジュールのリスト
+     * @throws \Exception APIキー未設定やリクエスト失敗時
      */
     public function parseSchedules(string $centerId, string $centerName, string $markdown, string $centerUrl): array
     {
@@ -69,8 +79,7 @@ EOT;
                 'Content-Type'  => 'application/json',
             ],
             'json' => [
-                'model' => 'gpt-6-luna', // ユーザー指定のモデル名
-                // 'model' => 'gpt-5.1', // ユーザー指定のモデル名
+                'model' => 'gpt-6-luna',
                 'messages' => [
                     ['role' => 'system', 'content' => 'You are a helpful assistant.'],
                     ['role' => 'user', 'content' => $prompt],
@@ -79,29 +88,36 @@ EOT;
             ],
         ]);
 
-        $body = json_decode((string)$response->getBody(), true);
+        $body = json_decode((string) $response->getBody(), true);
         $content = $body['choices'][0]['message']['content'] ?? '[]';
         $this->logger->info("AI Parser Response: " . $content);
         $data = json_decode($content, true);
 
+        if (!is_array($data)) {
+            $data = [];
+        }
+
         // キーが入れ子になっている可能性を考慮（json_object指定時）
-        if (isset($data['schedules'])) {
+        if (isset($data['schedules']) && is_array($data['schedules'])) {
             $data = $data['schedules'];
-        } elseif (!isset($data[0]) && count($data) > 0) {
-            // // 単一のオブジェクトとして返ってきた場合など
+        } elseif (!isset($data[0]) && !empty($data)) {
+            // 単一のオブジェクトとして返ってきた場合
             $data = [$data];
         }
 
         $schedules = [];
         $now = Carbon::now()->toDateTimeString();
         foreach ($data as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
             $schedules[] = new OpenDaySchedule(
                 $centerId,
                 $centerName,
-                $item['date'] ?? '',
-                $this->normalizeTimeSlot($item['timeSlot'] ?? ''),
-                $item['location'] ?? '',
-                $item['activities'] ?? '',
+                (string) ($item['date'] ?? ''),
+                $this->normalizeTimeSlot((string) ($item['timeSlot'] ?? '')),
+                (string) ($item['location'] ?? ''),
+                (string) ($item['activities'] ?? ''),
                 $now,
                 $centerUrl
             );
@@ -116,8 +132,8 @@ EOT;
      */
     private function normalizeTimeSlot(string $timeSlot): string
     {
-        return preg_replace_callback('/(\d{1,2}):(\d{2})/', function ($matches) {
-            return sprintf('%02d:%02d', (int)$matches[1], (int)$matches[2]);
+        return (string) preg_replace_callback('/(\d{1,2}):(\d{2})/', function (array $matches): string {
+            return sprintf('%02d:%02d', (int) $matches[1], (int) $matches[2]);
         }, $timeSlot);
     }
 }
