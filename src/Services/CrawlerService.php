@@ -7,11 +7,14 @@ namespace App\Services;
 use App\AppConfig;
 use GuzzleHttp\Client;
 
+/**
+ * Jina Reader APIを経由して指定WebページをMarkdown形式で取得するサービス。
+ */
 class CrawlerService
 {
     private Client $client;
 
-    const BASE_URL = 'https://r.jina.ai/';
+    public const BASE_URL = 'https://r.jina.ai/';
 
     public function __construct(?Client $client = null)
     {
@@ -35,6 +38,12 @@ class CrawlerService
         ]);
     }
 
+    /**
+     * 指定されたURLのコンテンツをMarkdownテキストとして取得します。
+     *
+     * @param string $url 取得対象URL
+     * @return string Markdown文字列
+     */
     public function fetchAsMarkdown(string $url): string
     {
         $response = $this->client->get(self::BASE_URL . $url);

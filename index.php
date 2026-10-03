@@ -1,64 +1,76 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use Google\CloudFunctions\FunctionsFramework;
-use Psr\Http\Message\ServerRequestInterface;
+use App\AppConfig;
+use App\Controllers\DashboardController;
+use App\Repositories\FirestoreRepository;
+use App\Services\AiParserService;
+use App\Services\CrawlerService;
+use App\UseCases\CollectionUseCase;
 use CloudEvents\V1\CloudEventInterface;
+use Google\CloudFunctions\FunctionsFramework;
+use GuzzleHttp\Psr7\Response;
+use Monolog\Handler\StreamHandler;
+use Monolog\Level;
+use Monolog\Logger;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 FunctionsFramework::http('main_http', 'main_http');
-function main_http(ServerRequestInterface $request): \Psr\Http\Message\ResponseInterface
+
+/**
+ * HTTPリクエストを受け取るエントリポイント関数。
+ */
+function main_http(ServerRequestInterface $request): ResponseInterface
 {
     $path = $request->getUri()->getPath();
-    $basePath = \App\AppConfig::getBasePath();
+    $basePath = AppConfig::getBasePath();
 
-    // プレフィックスを除去してルーティング
+    // ベースパスのプレフィックスを除去してルーティング
     $route = str_replace($basePath, '', $path);
     $route = rtrim($route, '/');
     if ($route === '') {
         $route = '/';
     }
 
-    $controller = new \App\Controllers\DashboardController();
+    $method = strtoupper($request->getMethod());
+    $controller = new DashboardController();
 
-    if ($route === '/' && $request->getMethod() === 'GET') {
-        return $controller->index($request);
-    }
-
-    if ($route === '/update' && $request->getMethod() === 'POST') {
-        return $controller->update($request);
-    }
-
-    if ($route === '/targets' && $request->getMethod() === 'GET') {
-        return $controller->targets($request);
-    }
-
-    if ($route === '/targets' && $request->getMethod() === 'POST') {
-        return $controller->saveTargets($request);
-    }
-
-    return new \GuzzleHttp\Psr7\Response(404, [], "Not Found");
+    return match ("{$method} {$route}") {
+        'GET /' => $controller->index($request),
+        'POST /update' => $controller->update($request),
+        'GET /targets' => $controller->targets($request),
+        'POST /targets' => $controller->saveTargets($request),
+        default => new Response(404, [], "Not Found"),
+    };
 }
 
 FunctionsFramework::cloudEvent('main_event', 'main_event');
+
+/**
+ * Cloud Events (Pub/Sub等の定期実行) を受け取るエントリポイント関数。
+ */
 function main_event(CloudEventInterface $event): void
 {
-    $logger = new \Monolog\Logger('batch');
-    $logger->pushHandler(new \Monolog\Handler\StreamHandler('php://stdout', \Monolog\Level::Info));
+    $logger = new Logger('batch');
+    $logger->pushHandler(new StreamHandler('php://stdout', Level::Info));
     $logger->info("Starting batch collection process from Cloud Event.");
 
-    $repository = new \App\Repositories\FirestoreRepository();
-    $useCase = new \App\UseCases\CollectionUseCase(
+    $repository = new FirestoreRepository();
+    $useCase = new CollectionUseCase(
         $repository,
-        new \App\Services\CrawlerService(),
-        new \App\Services\AiParserService($logger),
+        new CrawlerService(),
+        new AiParserService($logger),
         $logger
     );
 
     try {
         $useCase->execute();
         $logger->info("Batch collection process completed successfully.");
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         $logger->error("Batch collection process failed: " . $e->getMessage());
     }
 }

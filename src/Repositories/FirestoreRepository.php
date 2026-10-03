@@ -9,18 +9,23 @@ use App\Models\OpenDaySchedule;
 use App\Models\TargetCenter;
 use Google\Cloud\Firestore\FirestoreClient;
 
+/**
+ * Firestoreデータベースに対するデータ操作を行うリポジトリ。
+ */
 class FirestoreRepository
 {
     private FirestoreClient $db;
     private string $rootCollection;
 
-    public function __construct()
+    public function __construct(?FirestoreClient $db = null)
     {
-        $this->db = new FirestoreClient();
+        $this->db = $db ?? new FirestoreClient();
         $this->rootCollection = AppConfig::getFirestoreRootCollection();
     }
 
     /**
+     * 収集対象のスポーツセンターリストを保存します。
+     *
      * @param TargetCenter[] $targets
      */
     public function saveTargets(array $targets): void
@@ -56,6 +61,8 @@ class FirestoreRepository
     }
 
     /**
+     * 収集対象のスポーツセンターリストを取得します。
+     *
      * @return TargetCenter[]
      */
     public function getTargets(): array
@@ -65,12 +72,16 @@ class FirestoreRepository
 
         $targets = [];
         foreach ($documents as $doc) {
-            $targets[] = TargetCenter::fromArray($doc->id(), $doc->data());
+            $data = $doc->data();
+            $targets[] = TargetCenter::fromArray($doc->id(), $data);
         }
         return $targets;
     }
 
     /**
+     * 特定スポーツセンターのスケジュール情報を保存します。
+     *
+     * @param string $centerId
      * @param OpenDaySchedule[] $schedules
      */
     public function saveSchedules(string $centerId, array $schedules): void
@@ -78,13 +89,13 @@ class FirestoreRepository
         $writer = $this->db->bulkWriter();
         $collection = $this->db->collection($this->rootCollection)->document('data')->collection('schedules');
 
-        // Delete existing schedules for this center
+        // 該当センターの既存スケジュールを削除
         $existing = $collection->where('centerId', '=', $centerId)->documents();
         foreach ($existing as $doc) {
             $writer->delete($doc->reference());
         }
 
-        // Add new schedules
+        // 新規スケジュールを追加
         foreach ($schedules as $schedule) {
             $newDoc = $collection->newDocument();
             $writer->set($newDoc, $schedule->toArray());
@@ -94,6 +105,8 @@ class FirestoreRepository
     }
 
     /**
+     * 全てのスケジュール情報を取得します。
+     *
      * @return OpenDaySchedule[]
      */
     public function getAllSchedules(): array
