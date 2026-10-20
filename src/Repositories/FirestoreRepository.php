@@ -19,7 +19,10 @@ class FirestoreRepository
 
     public function __construct(?FirestoreClient $db = null)
     {
-        $this->db = $db ?? new FirestoreClient();
+        // PHP 8.4のCloud Run Functions環境でgRPC通信時に無限再帰エラーが発生する問題を回避するため、REST transportを明示指定します。
+        $this->db = $db ?? new FirestoreClient([
+            'transport' => 'rest',
+        ]);
         $this->rootCollection = AppConfig::getFirestoreRootCollection();
     }
 
