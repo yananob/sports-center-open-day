@@ -64,44 +64,29 @@
                     <tbody id="scheduleTableBody">
                         @foreach($schedules as $s)
                         @php
-                            $dateObj = \Carbon\Carbon::parse($s->date);
-                            $isPast = $dateObj->isPast() && !$dateObj->isToday();
-                            $hasTableTennis = mb_strpos($s->activities, '卓球') !== false;
-                            $isGray = $isPast || !$hasTableTennis;
-                            $rowClass = $isGray ? 'bg-gray-200 text-gray-500 gray-row hidden' : 'bg-white text-gray-900';
-                            $days = ['日', '月', '火', '水', '木', '金', '土'];
-                            $dayOfWeek = $days[$dateObj->dayOfWeek];
-
-                            // Google Calendar URL generation
-                            $startTime = '';
-                            $endTime = '';
-                            // UTF-8 の ～ を確実にマッチさせるため、\x{ff5e} を使用するか、マルチバイト対応の正規表現を検討
-                            if (preg_match('/(\d{2}):(\d{2}).*?(\d{2}):(\d{2})/', $s->timeSlot, $matches)) {
-                                $dateStr = str_replace('-', '', $s->date);
-                                $startTime = $dateStr . 'T' . $matches[1] . $matches[2] . '00';
-                                $endTime = $dateStr . 'T' . $matches[3] . $matches[4] . '00';
-                            }
-                            $calendarUrl = "https://www.google.com/calendar/render?action=TEMPLATE"
-                                . "&text=" . urlencode("【開放デー】" . $s->centerName)
-                                . "&dates=" . $startTime . "/" . $endTime
-                                . "&details=" . urlencode("内容: " . $s->activities . "\nURL: " . $s->centerUrl)
-                                . "&location=" . urlencode($s->centerName . " " . $s->location);
+                            $rowClass = $s->isGray() ? 'bg-gray-200 text-gray-500 gray-row hidden' : 'bg-white text-gray-900';
+                            $calendarUrl = $s->getGoogleCalendarUrl();
+                            $safeCenterUrl = $s->getSafeCenterUrl();
                         @endphp
                         <tr class="{{ $rowClass }}">
                             <td class="px-5 py-5 border-b border-gray-200 text-sm">
-                                <a href="{{ $s->centerUrl }}" target="_blank" class="text-blue-600 hover:text-blue-800 underline">
-                                    {{ $s->centerName }}
-                                </a>
+                                @if($safeCenterUrl !== '')
+                                    <a href="{{ $safeCenterUrl }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">
+                                        {{ $s->centerName }}
+                                    </a>
+                                @else
+                                    <span>{{ $s->centerName }}</span>
+                                @endif
                             </td>
                             <td class="px-5 py-5 border-b border-gray-200 text-sm" data-order="{{ $s->date }} {{ $s->timeSlot }}">
-                                {{ $s->date }} ({{ $dayOfWeek }}) {{ $s->timeSlot }}
+                                {{ $s->date }} ({{ $s->getDayOfWeek() }}) {{ $s->timeSlot }}
                             </td>
                             <td class="px-5 py-5 border-b border-gray-200 text-sm">
                                 {{ $s->activities }}
                             </td>
                             <td class="px-5 py-5 border-b border-gray-200 text-sm">
-                                @if($startTime && $endTime)
-                                <a href="{{ $calendarUrl }}" target="_blank" class="text-xs bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded shadow inline-block whitespace-nowrap">
+                                @if($calendarUrl !== null)
+                                <a href="{{ $calendarUrl }}" target="_blank" rel="noopener noreferrer" class="text-xs bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded shadow inline-block whitespace-nowrap">
                                     📅登録
                                 </a>
                                 @endif

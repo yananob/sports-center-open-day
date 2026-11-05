@@ -15,6 +15,7 @@ use eftec\bladeone\BladeOne;
 use GuzzleHttp\Psr7\Response;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -25,19 +26,37 @@ class DashboardController
 {
     private BladeOne $blade;
     private FirestoreRepository $repository;
-    private Logger $logger;
+    private LoggerInterface $logger;
 
-    public function __construct()
-    {
-        $views = __DIR__ . '/../../views';
-        $cache = __DIR__ . '/../../cache';
-        if (!is_dir($cache)) {
-            mkdir($cache, 0777, true);
+    public function __construct(
+        ?FirestoreRepository $repository = null,
+        ?BladeOne $blade = null,
+        ?LoggerInterface $logger = null
+    ) {
+        $this->repository = $repository ?? new FirestoreRepository();
+
+        if ($logger !== null) {
+            $this->logger = $logger;
+        } else {
+            $log = new Logger('dashboard');
+            $log->pushHandler(new StreamHandler('php://stdout', Logger::INFO));
+            $this->logger = $log;
         }
-        $this->blade = new BladeOne($views, $cache, BladeOne::MODE_DEBUG);
-        $this->repository = new FirestoreRepository();
-        $this->logger = new Logger('dashboard');
-        $this->logger->pushHandler(new StreamHandler('php://stdout', Logger::INFO));
+
+        if ($blade !== null) {
+            $this->blade = $blade;
+        } else {
+            $views = __DIR__ . '/../../views';
+            $cache = __DIR__ . '/../../cache';
+            if (!is_dir($cache)) {
+                mkdir($cache, 0777, true);
+            }
+            // 本番・テスト環境ではMODE_AUTO（変更検知時のみ再コンパイル）にしてパフォーマンスを向上
+            $mode = AppConfig::getEnvironment() === 'local'
+                ? BladeOne::MODE_DEBUG
+                : BladeOne::MODE_AUTO;
+            $this->blade = new BladeOne($views, $cache, $mode);
+        }
     }
 
     /**
@@ -47,11 +66,8 @@ class DashboardController
     {
         $schedules = $this->repository->getAllSchedules();
 
-        // 日付および時間帯で昇順ソート
-        usort(
-            $schedules,
-            fn(OpenDaySchedule $a, OpenDaySchedule $b): int => $a->date <=> $b->date ?: $a->timeSlot <=> $b->timeSlot
-        );
+        // ドメインモデルの比較ロジックを用いて日付および時間帯で昇順ソート
+        usort($schedules, [OpenDaySchedule::class, 'compare']);
 
         $basePath = AppConfig::getBasePath();
 
@@ -116,14 +132,24 @@ class DashboardController
             if (!is_array($data)) {
                 continue;
             }
-            $id = (string) ($data['id'] ?? '');
-            $name = (string) ($data['name'] ?? '');
-            $url = (string) ($data['url'] ?? '');
+            $id = trim((string) ($data['id'] ?? ''));
+            $name = trim((string) ($data['name'] ?? ''));
+            $url = trim((string) ($data['url'] ?? ''));
 
             if ($id === '' || $name === '' || $url === '') {
                 continue;
             }
-            $targets[] = TargetCenter::fromArray($id, $data);
+
+            // URLの形式検証および安全なスキーム (http/https) のチェック
+            if (!$this->isValidHttpUrl($url)) {
+                $this->logger->warning("Skipped invalid target URL: {$url} for ID: {$id}");
+                continue;
+            }
+
+            $targets[] = TargetCenter::fromArray($id, [
+                'name' => $name,
+                'url' => $url,
+            ]);
         }
 
         try {
@@ -134,5 +160,18 @@ class DashboardController
             $this->logger->error("Save targets error: " . $e->getMessage());
             return new Response(500, [], "Internal Server Error: " . $e->getMessage());
         }
+    }
+
+    /**
+     * 有効なHTTPまたはHTTPSのURLかどうかを検証します。
+     */
+    private function isValidHttpUrl(string $url): bool
+    {
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return false;
+        }
+
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        return $scheme === 'http' || $scheme === 'https';
     }
 }

@@ -29,8 +29,11 @@ function main_http(ServerRequestInterface $request): ResponseInterface
     $path = $request->getUri()->getPath();
     $basePath = AppConfig::getBasePath();
 
-    // ベースパスのプレフィックスを除去してルーティング
-    $route = str_replace($basePath, '', $path);
+    // ベースパスのプレフィックスを安全に除去してルーティング
+    $route = $path;
+    if ($basePath !== '' && str_starts_with($route, $basePath)) {
+        $route = substr($route, strlen($basePath));
+    }
     $route = rtrim($route, '/');
     if ($route === '') {
         $route = '/';

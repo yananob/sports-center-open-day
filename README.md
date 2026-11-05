@@ -13,13 +13,16 @@
 ## 主な機能
 
 - **開放デー一覧表示（ダッシュボード）**
-  - 開催日および時間帯によるソート機能
-  - 過去の日程や卓球以外のスポーツ情報をグレーアウト／表示切り替え機能
-  - ワンクリックで Google カレンダーに予定を登録するリンク生成
+  - ドメインモデル (`OpenDaySchedule`) に集約されたビジネスロジックに基づく日付および時間帯の昇順ソート機能
+  - 過去の日程や卓球以外のスポーツ情報を判定し、グレーアウト／表示切り替え機能
+  - ワンクリックで Google カレンダーに予定を登録するリンク生成（リバースタブナビング防止対策済み）
+  - 安全な外部リンク検証（http/httpsスキーム限定）
 - **手動更新機能**
   - ダッシュボードの「情報を更新」ボタンからWebクローリングとAI解析をオンデマンド実行
+  - 二重送信防止および処理中表示（スピナーアイコン）
 - **収集対象スポーツセンター管理機能 (`/targets`)**
   - 収集対象のスポーツセンター（ID、名称、URL）の追加・編集・削除
+  - 入力URLの形式バリデーションおよびhttp/httpsスキーム検証
 - **定期バッチ収集 (Cloud Event / Pub/Sub)**
   - `main_event` 関数を通じて定期的に自動データ収集を実行
 
@@ -33,16 +36,16 @@
 sports-center-open-day/
 ├── src/
 │   ├── Controllers/
-│   │   └── DashboardController.php   # 画面表示・リクエスト処理
+│   │   └── DashboardController.php   # 画面表示・リクエスト処理（BladeOne環境別キャッシュ最適化済み）
 │   ├── UseCases/
 │   │   └── CollectionUseCase.php     # スケジュール収集の業務ロジック
 │   ├── Services/
 │   │   ├── CrawlerService.php        # Jina Reader APIによるWebページ取得
-│   │   └── AiParserService.php       # OpenAI APIによる情報抽出
+│   │   └── AiParserService.php       # OpenAI APIによる情報抽出（Markdownコードブロック除去・安全パース対応）
 │   ├── Repositories/
-│   │   └── FirestoreRepository.php   # Firestoreデータベース操作
+│   │   └── FirestoreRepository.php   # Firestoreデータベース操作 (REST transport)
 │   ├── Models/
-│   │   ├── OpenDaySchedule.php       # スケジュール情報のドメインモデル
+│   │   ├── OpenDaySchedule.php       # スケジュール情報のドメインモデル（ビジネス判定・カレンダーURL生成ロジックをカプセル化）
 │   │   └── TargetCenter.php          # 収集対象センターのドメインモデル
 │   └── AppConfig.php                 # アプリケーション設定管理
 ├── views/
@@ -50,7 +53,7 @@ sports-center-open-day/
 │   └── targets.blade.php             # 収集対象管理画面
 ├── tests/
 │   └── Unit/                         # ユニットテスト (PHPUnit)
-├── index.php                         # Cloud Functions エントリポイント
+├── index.php                         # Cloud Functions エントリポイント（安全なプレフィックスマッチルーティング）
 └── README.md
 ```
 
@@ -79,7 +82,7 @@ composer install --ignore-platform-reqs
 ### 2. 静的解析の実行
 
 ```bash
-vendor/bin/phpstan analyze src/ index.php
+vendor/bin/phpstan analyze
 ```
 
 ### 3. ユニットテストの実行
