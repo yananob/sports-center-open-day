@@ -44,6 +44,11 @@ class AiParserService
             throw new \Exception("OpenAI API key is not set.");
         }
 
+        if (trim($markdown) === '') {
+            $this->logger->info("Empty markdown provided for {$centerName}, returning empty schedules.");
+            return [];
+        }
+
         $year = Carbon::now()->year;
         $prompt = <<<EOT
 あなたはスポーツセンターの開放デー情報を抽出するアシスタントです。
@@ -91,10 +96,27 @@ EOT;
         $body = json_decode((string) $response->getBody(), true);
         $content = $body['choices'][0]['message']['content'] ?? '[]';
         $this->logger->info("AI Parser Response: " . $content);
-        $data = json_decode($content, true);
+
+        return $this->parseResponseContent($content, $centerId, $centerName, $centerUrl);
+    }
+
+    /**
+     * AIのレスポンステキストからOpenDayScheduleモデルの配列をパースします。
+     *
+     * @param string $content
+     * @param string $centerId
+     * @param string $centerName
+     * @param string $centerUrl
+     * @return OpenDaySchedule[]
+     */
+    public function parseResponseContent(string $content, string $centerId, string $centerName, string $centerUrl): array
+    {
+        $cleanedContent = $this->extractJsonString($content);
+        $data = json_decode($cleanedContent, true);
 
         if (!is_array($data)) {
-            $data = [];
+            $this->logger->warning("Failed to decode JSON from AI response: " . $content);
+            return [];
         }
 
         // キーが入れ子になっている可能性を考慮（json_object指定時）
@@ -111,13 +133,24 @@ EOT;
             if (!is_array($item)) {
                 continue;
             }
+
+            $date = trim((string) ($item['date'] ?? ''));
+            $timeSlot = $this->normalizeTimeSlot((string) ($item['timeSlot'] ?? ''));
+            $location = trim((string) ($item['location'] ?? ''));
+            $activities = trim((string) ($item['activities'] ?? ''));
+
+            // 必須項目（日付または内容）が完全に欠落している不正レコードはスキップ
+            if ($date === '' && $activities === '') {
+                continue;
+            }
+
             $schedules[] = new OpenDaySchedule(
                 $centerId,
                 $centerName,
-                (string) ($item['date'] ?? ''),
-                $this->normalizeTimeSlot((string) ($item['timeSlot'] ?? '')),
-                (string) ($item['location'] ?? ''),
-                (string) ($item['activities'] ?? ''),
+                $date,
+                $timeSlot,
+                $location,
+                $activities,
                 $now,
                 $centerUrl
             );
@@ -127,13 +160,25 @@ EOT;
     }
 
     /**
+     * マークダウンのコードブロックなどを除去して純粋なJSON文字列を抽出します。
+     */
+    private function extractJsonString(string $content): string
+    {
+        $trimmed = trim($content);
+        if (preg_match('/```(?:json)?\s*([\s\S]*?)\s*```/', $trimmed, $matches)) {
+            return trim($matches[1]);
+        }
+        return $trimmed;
+    }
+
+    /**
      * 時刻の値を時間・分ともに2桁、前ゼロ詰めに正規化します。
      * 例：9:00～13:00 -> 09:00～13:00
      */
-    private function normalizeTimeSlot(string $timeSlot): string
+    public function normalizeTimeSlot(string $timeSlot): string
     {
         return (string) preg_replace_callback('/(\d{1,2}):(\d{2})/', function (array $matches): string {
             return sprintf('%02d:%02d', (int) $matches[1], (int) $matches[2]);
-        }, $timeSlot);
+        }, trim($timeSlot));
     }
 }
